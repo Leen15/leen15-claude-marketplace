@@ -1,0 +1,13 @@
+{
+  "name": "handoff",
+  "displayName": "Handoff",
+  "description": "Cold-start resume briefs (/handoff) + a UserPromptSubmit reminder that suggests saving a brief before /clear when the live context grows large.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Luca Mattivi",
+    "email": "l.mattivi@shopfully.com"
+  },
+  "keywords": ["handoff", "context", "resume", "brief", "tokens"],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

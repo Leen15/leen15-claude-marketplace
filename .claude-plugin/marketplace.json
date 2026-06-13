@@ -1,0 +1,18 @@
+{
+  "name": "leen15-claude-marketplace",
+  "description": "Personal Claude Code plugins by leen15",
+  "version": "1.0.0",
+  "owner": {
+    "name": "Luca Mattivi",
+    "email": "l.mattivi@shopfully.com"
+  },
+  "plugins": [
+    {
+      "name": "handoff",
+      "source": "./plugins/handoff",
+      "description": "Cold-start resume briefs (/handoff) + a UserPromptSubmit reminder that suggests saving a brief before /clear when the live context grows large.",
+      "version": "1.0.0",
+      "author": { "name": "Luca Mattivi" }
+    }
+  ]
+}
