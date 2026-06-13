@@ -105,10 +105,15 @@ Ask yourself: "If I had zero memory of this conversation, could I resume from th
 
 ## Resume mode
 
+Goal: silently reload the saved context so work can continue. This is a **drop-in replacement for `/compact`**, NOT a status meeting. Restore the context, acknowledge in one line, then stop and wait for the user.
+
 1. Resolve repo/ticket (Step 0).
-2. Read `~/.claude/handoff/$REPO/<ticket>.md`. If it does not exist, run List mode and ask which brief to use.
+2. Read `~/.claude/handoff/$REPO/<ticket>.md` into context. If it does not exist, run List mode and ask which brief to use.
 3. Also read the in-repo task file it references under **Key files**, if any.
-4. Give a 3-5 line summary of where things stand, then **continue from Next steps** without asking the user to re-explain. If there are Open questions that block progress, ask those (and only those) first.
+4. Output **at most one short line** confirming what was reloaded — e.g. `Contesto ripreso da <ticket> (branch <branch>). Dimmi come procedere.` Do NOT reproduce the brief: no recap, no decisions list, no next-steps dump, no tables, no question.
+5. Do NOT proactively ask the Open questions or propose next steps. The brief now lives in your context — use it to answer the user's next message. Ask a question only if the user's explicit request genuinely cannot be carried out without it.
+
+**For the rest of the conversation after a resume:** behave normally. Do not re-summarize state, re-list next steps, or ask "how do you want to proceed" unless the user explicitly asks for a recap. Resume loads context; it does not report on it.
 
 ---
 
