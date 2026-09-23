@@ -10,9 +10,11 @@ Manage **handoff briefs**: compact, cold-start documents that let a fresh sessio
 Briefs are stored per-repo under the user's home, NOT inside the project:
 
 ```
-~/.claude/handoff/<repo>/<ticket>.md
+${CLAUDE_CONFIG_DIR:-$HOME/.claude}/handoff/<repo>/<ticket>.md
 ```
 
+- When `CLAUDE_CONFIG_DIR` is set, use it as the Claude home directory.
+- Otherwise fall back to `$HOME/.claude`.
 - `<repo>` = basename of `git rev-parse --show-toplevel` (fallback: basename of the current working directory).
 - `<ticket>` = derived in **Step 0** below.
 
@@ -26,7 +28,9 @@ Run, in one block:
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 REPO=$(basename "$ROOT")
 BRANCH=$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)
-echo "repo=$REPO branch=$BRANCH"
+CLAUDE_HOME="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+HANDOFF_DIR="$CLAUDE_HOME/handoff/$REPO"
+echo "repo=$REPO branch=$BRANCH handoff_dir=$HANDOFF_DIR"
 ```
 
 Derive a **proposed** `<ticket>`:
@@ -40,7 +44,15 @@ Derive a **proposed** `<ticket>`:
 
 If what the session actually covered differs from the branch ticket, say so and propose a content-based slug instead (e.g. `token-cost-and-handoff-skill`). Use the name the user confirms. In `resume`/`list` modes, if multiple briefs exist and the reference is ambiguous, confirm which one before reading.
 
-The brief path is `~/.claude/handoff/$REPO/<confirmed-ref>.md`. Create `~/.claude/handoff/$REPO/` with `mkdir -p` before writing.
+The brief path is `$HANDOFF_DIR/<confirmed-ref>.md`.
+
+Before every filesystem operation, resolve the storage directory in the same
+shell command. Do not assume shell variables from a previous command persist:
+
+```bash
+CLAUDE_HOME="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+HANDOFF_DIR="$CLAUDE_HOME/handoff/$REPO"
+```
 
 ## Parse `$ARGUMENTS`
 
@@ -55,7 +67,14 @@ First token = subcommand. If empty, default to `save`.
 
 Goal: dump everything needed to resume this task cold into the brief file, so the user can `/clear` and continue with a one-line prompt.
 
-1. Resolve repo/ticket (Step 0) and `mkdir -p ~/.claude/handoff/$REPO/`.
+1. Resolve repo/ticket (Step 0), then create the storage directory:
+
+   ```bash
+   CLAUDE_HOME="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+   HANDOFF_DIR="$CLAUDE_HOME/handoff/$REPO"
+   mkdir -p "$HANDOFF_DIR"
+   ```
+
 2. If the brief already exists, read it first and **update** it (preserve still-valid Decisions/Pitfalls, don't lose history) rather than blindly overwriting.
 3. Look for the user's in-repo task file (commonly `docs/wip-*.md`, `docs/<ticket>*.md`, or whatever they mentioned this session). If found, reference its path under **Key files** — do NOT duplicate its content into the brief.
 4. Write the brief using this exact template, filled from the **current conversation**. Be concrete and specific — this is read by a fresh session with zero memory.
@@ -89,7 +108,7 @@ _Updated: <output of `date '+%Y-%m-%d %H:%M'`> · repo: <repo> · branch: <branc
 5. After writing, print to the user, verbatim, a ready-to-use resume block:
 
 ```
-Brief salvato in ~/.claude/handoff/<repo>/<ticket>.md
+Brief salvato in <resolved-handoff-dir>/<ticket>.md
 
 Ora fai /clear, poi incolla:
   /handoff resume <ticket>
@@ -108,7 +127,7 @@ Ask yourself: "If I had zero memory of this conversation, could I resume from th
 Goal: silently reload the saved context so work can continue. This is a **drop-in replacement for `/compact`**, NOT a status meeting. Restore the context, acknowledge in one line, then stop and wait for the user.
 
 1. Resolve repo/ticket (Step 0).
-2. Read `~/.claude/handoff/$REPO/<ticket>.md` into context. If it does not exist, run List mode and ask which brief to use.
+2. Resolve the handoff path using `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/handoff/$REPO/<ticket>.md` and read it into context. If it does not exist, run List mode and ask which brief to use.
 3. Also read the in-repo task file it references under **Key files**, if any.
 4. Output **at most one short line** confirming what was reloaded — e.g. `Contesto ripreso da <ticket> (branch <branch>). Dimmi come procedere.` Do NOT reproduce the brief: no recap, no decisions list, no next-steps dump, no tables, no question.
 5. Do NOT proactively ask the Open questions or propose next steps. The brief now lives in your context — use it to answer the user's next message. Ask a question only if the user's explicit request genuinely cannot be carried out without it.
@@ -120,8 +139,16 @@ Goal: silently reload the saved context so work can continue. This is a **drop-i
 ## List mode
 
 ```bash
-ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); REPO=$(basename "$ROOT")
-ls -lt ~/.claude/handoff/"$REPO"/ 2>/dev/null
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+REPO=$(basename "$ROOT")
+CLAUDE_HOME="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+HANDOFF_DIR="$CLAUDE_HOME/handoff/$REPO"
+
+if [ -d "$HANDOFF_DIR" ]; then
+  ls -lt "$HANDOFF_DIR"
+else
+  echo "No handoff briefs for $REPO"
+fi
 ```
 
 Print the available briefs for this repo (filename + last-modified). If the directory is empty or missing, say there are no briefs yet for `<repo>`.

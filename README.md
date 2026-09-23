@@ -10,7 +10,7 @@ Cold-start **resume briefs** plus an automatic context reminder.
 
 - **`/handoff [save] | resume [ticket] | list`** — save a compact brief of the
   current session (decisions, dead ends, next steps) outside the repo at
-  `~/.claude/handoff/<repo>/<ref>.md`, so you can `/clear` and resume cold with
+  `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/handoff/<repo>/<ref>.md`, so you can `/clear` and resume cold with
   one line. Resume and list modes read those briefs back.
 - **Context reminder hook** (`UserPromptSubmit`) — when the live context grows
   past ~200k tokens, injects a note so Claude suggests saving a brief before
@@ -50,4 +50,6 @@ plugins/handoff/
 ## Notes
 
 - Hook script paths use `${CLAUDE_PLUGIN_ROOT}` so they work from any install location.
-- Briefs are written under the user's home (`~/.claude/handoff/`), never inside a repo.
+- Briefs are written under `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/handoff/`,
+  never inside a repo. This keeps handoffs isolated when multiple Claude Code
+  profiles use different `CLAUDE_CONFIG_DIR` values.
