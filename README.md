@@ -16,11 +16,24 @@ Cold-start **resume briefs** plus an automatic context reminder.
   past ~200k tokens, injects a note so Claude suggests saving a brief before
   `/clear`. Anti-nag: fires once per threshold, then only after +50k more.
 
+### `codex-delegate`
+
+Delegate well-scoped tasks to the **Codex CLI** (GPT) to save Claude context tokens.
+
+- **`/codex-delegate <task>`** — Claude writes a non-interactive prompt (scope,
+  approvals, acceptance criteria, short final message), runs
+  `codex exec --approve-for-me` in the background with stdin closed, then reads
+  back only Codex's final message, `git status` and `git diff --stat`, and
+  reviews the diff itself.
+- Requires the `codex` CLI installed and logged in; model and reasoning effort
+  come from your Codex config (extra flags via `CODEX_DELEGATE_ARGS`).
+
 ## Install (teammates)
 
 ```
 /plugin marketplace add <git-url-of-this-repo>
 /plugin install handoff@leen15-claude-marketplace
+/plugin install codex-delegate@leen15-claude-marketplace
 ```
 
 Replace `<git-url-of-this-repo>` with the SSH/HTTPS URL once it's pushed
@@ -45,6 +58,10 @@ plugins/handoff/
   skills/handoff/SKILL.md            the /handoff skill
   hooks/hooks.json                   UserPromptSubmit -> scripts/handoff-reminder.py
   scripts/handoff-reminder.py        context-size reminder (uses ${CLAUDE_PLUGIN_ROOT})
+plugins/codex-delegate/
+  .claude-plugin/plugin.json         plugin manifest
+  skills/codex-delegate/SKILL.md     the /codex-delegate skill
+  skills/codex-delegate/run.sh       runs codex exec and prints summary + diff stat
 ```
 
 ## Notes

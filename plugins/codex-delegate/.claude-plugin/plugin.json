@@ -1,0 +1,12 @@
+{
+  "name": "codex-delegate",
+  "displayName": "Codex Delegate",
+  "description": "Delegate well-scoped exploratory or mechanical tasks to the Codex CLI (GPT) and read back only a short summary + git diff, to save Claude context tokens.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Luca Mattivi",
+    "email": "luca@mattivi.io"
+  },
+  "keywords": ["codex", "gpt", "delegate", "subagent", "tokens"],
+  "skills": "./skills/"
+}

@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "owner": {
     "name": "Luca Mattivi",
-    "email": "l.mattivi@shopfully.com"
+    "email": "luca@mattivi.io"
   },
   "plugins": [
     {
@@ -12,7 +12,18 @@
       "source": "./plugins/handoff",
       "description": "Cold-start resume briefs (/handoff) + a UserPromptSubmit reminder that suggests saving a brief before /clear when the live context grows large.",
       "version": "1.1.2",
-      "author": { "name": "Luca Mattivi" }
+      "author": {
+        "name": "Luca Mattivi"
+      }
+    },
+    {
+      "name": "codex-delegate",
+      "source": "./plugins/codex-delegate",
+      "description": "Delegate well-scoped exploratory or mechanical tasks to the Codex CLI (GPT) and read back only a short summary + git diff, to save Claude context tokens.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Luca Mattivi"
+      }
     }
   ]
 }
