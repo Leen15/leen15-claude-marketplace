@@ -3,7 +3,7 @@
 # Codex's final message, the repo's git status/diff stat and the tokens Codex used.
 #
 # Usage: run.sh <repo_dir> <prompt_file> [task_name]
-# Extra codex flags can be passed via CODEX_DELEGATE_ARGS (e.g. "-m gpt-6-sol").
+# Extra codex flags can be passed via CODEX_DELEGATE_ARGS (e.g. "-m gpt-6-luna").
 set -u
 
 repo="${1:?usage: run.sh <repo_dir> <prompt_file> [task_name]}"
@@ -29,7 +29,7 @@ codex exec -C "$repo" --approve-for-me ${CODEX_DELEGATE_ARGS:-} \
 status=$?
 elapsed=$(( $(date +%s) - start ))
 
-echo "=== codex exit=$status elapsed=${elapsed}s"
+echo "=== codex exit=$status elapsed=${elapsed}s args=${CODEX_DELEGATE_ARGS:-(config default)}"
 echo "=== tokens used by codex: $(grep -A1 'tokens used' "$log" | tail -1)"
 echo "=== final message ($summary)"
 if [ -s "$summary" ]; then cat "$summary"; else echo "(no final message; last log lines below)"; tail -20 "$log"; fi

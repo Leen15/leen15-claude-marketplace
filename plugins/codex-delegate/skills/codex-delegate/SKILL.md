@@ -17,6 +17,23 @@ Do it yourself instead when:
 - the task needs decisions or approvals from the user mid-way (Codex cannot ask);
 - it touches production, real credentials or secrets.
 
+## Pick the worker model
+
+Choose the model from the shape of the task, not its size in files. Pass it via `CODEX_DELEGATE_ARGS`.
+
+| Model | Use for | Avoid for |
+|---|---|---|
+| `gpt-6-luna` (fast, cheap) | Recon and read-only sweeps with a compact answer (find usages, collect values from logs, list files matching a rule); small scoped edits with a single clear rule; one-shot checks (run lint/tests, report result). Think "Haiku-class worker". | Anything with more than ~3 dependent steps, where step N depends on what it learned in step N-1; tasks that need to keep a plan in mind for a long time. It is very capable per step but loses track of long multi-step work. |
+| `gpt-6.1-sol` (default) | Multi-step work: edits that need understanding across files, end-to-end verification with setup/check/cleanup, debugging with retries, anything with a non-trivial acceptance checklist. | Trivial lookups (wasteful). |
+
+Rules of thumb:
+- Read-only + one question + answer fits in a few lines → Luna.
+- Writes code, or has setup → action → verify → cleanup → Sol.
+- Unsure → Sol. A failed Luna run plus a rerun costs more than one Sol run.
+- If a Luna run comes back incomplete or confused, rerun on Sol; do not retry Luna with a longer prompt.
+
+Reasoning effort: keep the default unless the task is clearly trivial (`-c model_reasoning_effort=low`) or clearly hard (`high`).
+
 ## Step 1 — write the prompt to a file
 
 Write the prompt in English to `${TMPDIR:-/tmp}/codex-delegate/<task-name>-prompt.txt` (create the directory). Always include:
@@ -34,7 +51,11 @@ Write the prompt in English to `${TMPDIR:-/tmp}/codex-delegate/<task-name>-promp
 
 ```bash
 bash "<this skill's base directory>/run.sh" "<repo_dir>" "<prompt_file>" "<task-name>"
+# with an explicit model (see "Pick the worker model"):
+CODEX_DELEGATE_ARGS="-m gpt-6-luna" bash "<this skill's base directory>/run.sh" ...
 ```
+
+Tell the user in the same line which model you picked and why (e.g. "delegating to Codex (Luna: read-only sweep)").
 
 Run it with the Bash tool and `run_in_background: true` (tasks take minutes). You are notified when it ends; do not poll. The script:
 - runs `codex exec -C <repo> --approve-for-me -o <summary> "<prompt>" < /dev/null` (stdin must be closed, otherwise Codex hangs on "Reading additional input from stdin...");
