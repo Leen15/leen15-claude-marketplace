@@ -20,7 +20,7 @@
       "name": "codex-delegate",
       "source": "./plugins/codex-delegate",
       "description": "Delegate well-scoped exploratory or mechanical tasks to the Codex CLI (GPT) and read back only a short summary + git diff, to save Claude context tokens.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "Luca Mattivi"
       }
