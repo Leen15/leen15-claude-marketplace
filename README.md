@@ -12,6 +12,12 @@ Cold-start **resume briefs** plus an automatic context reminder.
   current session (decisions, dead ends, next steps) outside the repo at
   `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/handoff/<repo>/<ref>.md`, so you can `/clear` and resume cold with
   one line. Resume and list modes read those briefs back.
+- **Optional Hindsight sync** — if a [Hindsight](https://github.com/vectorize-io/hindsight)
+  MCP server is connected (name from `HANDOFF_HINDSIGHT_MCP`, default
+  `hindsight`; set it to `off` to disable), save also retains the brief's
+  objective, decisions and pitfalls as document `handoff:<repo>:<ref>`
+  (re-saving replaces it), and resume recalls related memories tagged
+  `project:<repo>`. The brief file stays the source of truth.
 - **Context reminder hook** (`UserPromptSubmit`) — when the live context grows
   past ~200k tokens, injects a note so Claude suggests saving a brief before
   `/clear`. Anti-nag: fires once per threshold, then only after +50k more.

@@ -30,8 +30,11 @@ REPO=$(basename "$ROOT")
 BRANCH=$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)
 CLAUDE_HOME="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 HANDOFF_DIR="$CLAUDE_HOME/handoff/$REPO"
-echo "repo=$REPO branch=$BRANCH handoff_dir=$HANDOFF_DIR"
+HINDSIGHT_MCP="${HANDOFF_HINDSIGHT_MCP:-hindsight}"
+echo "repo=$REPO branch=$BRANCH handoff_dir=$HANDOFF_DIR hindsight_mcp=$HINDSIGHT_MCP"
 ```
+
+`hindsight_mcp` is the MCP server name used by the optional Hindsight sync (see **Hindsight memory sync** below).
 
 Derive a **proposed** `<ticket>`:
 1. If `$ARGUMENTS` contains an explicit ticket after the subcommand, use it.
@@ -60,6 +63,17 @@ First token = subcommand. If empty, default to `save`.
 - `save` (or empty) → **Save mode**
 - `resume` → **Resume mode**
 - `list` → **List mode**
+
+---
+
+## Hindsight memory sync (optional)
+
+When a [Hindsight](https://github.com/vectorize-io/hindsight) MCP server is connected, Save mode also pushes the durable part of the brief into Hindsight, and Resume mode pulls related memories from it. The brief file always stays the source of truth: Hindsight extracts facts with an LLM and may drop details, so it complements the file and never replaces it.
+
+- Server name: `hindsight_mcp` from Step 0 (env `HANDOFF_HINDSIGHT_MCP`, default `hindsight`). `HANDOFF_HINDSIGHT_MCP=off` disables the sync.
+- **Active only if** the tools `mcp__<hindsight_mcp>__sync_retain` and `mcp__<hindsight_mcp>__recall` exist in this session. If they are deferred, load them with ToolSearch (`select:mcp__<hindsight_mcp>__sync_retain,mcp__<hindsight_mcp>__recall`). If they do not exist, skip every Hindsight step silently — never mention Hindsight to the user.
+- Document ID: `handoff:<repo>:<confirmed-ref>`. Retaining again with the same `document_id` replaces the previous memories of that document, so each brief maps to exactly one up-to-date document.
+- Never send credentials, tokens, passwords, API keys, connection strings, or other secrets to Hindsight, even if they appear in the brief.
 
 ---
 
@@ -105,7 +119,17 @@ _Updated: <output of `date '+%Y-%m-%d %H:%M'`> · repo: <repo> · branch: <branc
 <anything unresolved that may need the user's input>
 ```
 
-5. After writing, print to the user, verbatim, a ready-to-use resume block:
+5. **Hindsight sync** (only if active, see above). Call `mcp__<hindsight_mcp>__sync_retain` with:
+   - `content`: the brief title line plus the **Objective**, **Decisions + why** and **Pitfalls / dead ends** sections, secrets removed. Exclude Current state, Next steps, Key files and Open questions: they go stale quickly and stay only in the file.
+   - `document_id`: `handoff:<repo>:<confirmed-ref>`
+   - `context`: `handoff`
+   - `tags`: `["project:<repo>", "ticket:<confirmed-ref>", "source:handoff"]`
+   - `metadata`: `{"brief_path": "<resolved-handoff-dir>/<ticket>.md", "branch": "<branch>", "source": "handoff"}`
+   - `timestamp`: current UTC time in ISO format (`date -u '+%Y-%m-%dT%H:%M:%SZ'`)
+
+   The sync succeeded only if the call completes and returns a non-empty `memory_ids` list. A failure never blocks the save: the file is already written.
+
+6. After writing, print to the user, verbatim, a ready-to-use resume block:
 
 ```
 Brief salvato in <resolved-handoff-dir>/<ticket>.md
@@ -113,6 +137,8 @@ Brief salvato in <resolved-handoff-dir>/<ticket>.md
 Ora fai /clear, poi incolla:
   /handoff resume <ticket>
 ```
+
+If the Hindsight sync is active, add one line after the first one: `Hindsight: <N> memorie (handoff:<repo>:<ref>)` on success, or `Hindsight: sync non riuscito — <short reason>` when the call fails or returns zero memories.
 
 Do not run `/clear` yourself — it is the user's action.
 
@@ -129,8 +155,9 @@ Goal: silently reload the saved context so work can continue. This is a **drop-i
 1. Resolve repo/ticket (Step 0).
 2. Resolve the handoff path using `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/handoff/$REPO/<ticket>.md` and read it into context. If it does not exist, run List mode and ask which brief to use.
 3. Also read the in-repo task file it references under **Key files**, if any.
-4. Output **at most one short line** confirming what was reloaded — e.g. `Contesto ripreso da <ticket> (branch <branch>). Dimmi come procedere.` Do NOT reproduce the brief: no recap, no decisions list, no next-steps dump, no tables, no question.
-5. Do NOT proactively ask the Open questions or propose next steps. The brief now lives in your context — use it to answer the user's next message. Ask a question only if the user's explicit request genuinely cannot be carried out without it.
+4. **Hindsight recall** (only if active, see above). Call `mcp__<hindsight_mcp>__recall` with `query` = the brief title plus its Objective, `tags: ["project:<repo>"]`, `tags_match: "any_strict"`, `budget: "low"`, `max_tokens: 2000`. Treat the results as background context only. On conflict the brief file wins, unless a memory is newer than the brief's `_Updated:` date and does not come from this brief's own document (`document_id` different from `handoff:<repo>:<ref>`), e.g. a decision taken later in another assistant. If the recall fails, continue silently.
+5. Output **at most one short line** confirming what was reloaded — e.g. `Contesto ripreso da <ticket> (branch <branch>). Dimmi come procedere.` If step 4 found newer memories that contradict the brief, mention them in the same line in a few words (e.g. `… Nota: Hindsight ha una decisione più recente su <topic>.`). Do NOT reproduce the brief: no recap, no decisions list, no next-steps dump, no tables, no question.
+6. Do NOT proactively ask the Open questions or propose next steps. The brief now lives in your context — use it to answer the user's next message. Ask a question only if the user's explicit request genuinely cannot be carried out without it.
 
 **For the rest of the conversation after a resume:** behave normally. Do not re-summarize state, re-list next steps, or ask "how do you want to proceed" unless the user explicitly asks for a recap. Resume loads context; it does not report on it.
 
