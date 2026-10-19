@@ -71,7 +71,7 @@ First token = subcommand. If empty, default to `save`.
 When a [Hindsight](https://github.com/vectorize-io/hindsight) MCP server is connected, Save mode also pushes the durable part of the brief into Hindsight, and Resume mode pulls related memories from it. The brief file always stays the source of truth: Hindsight extracts facts with an LLM and may drop details, so it complements the file and never replaces it.
 
 - Server name: `hindsight_mcp` from Step 0 (env `HANDOFF_HINDSIGHT_MCP`, default `hindsight`). `HANDOFF_HINDSIGHT_MCP=off` disables the sync.
-- **Active only if** the tools `mcp__<hindsight_mcp>__sync_retain` and `mcp__<hindsight_mcp>__recall` exist in this session. If they are deferred, load them with ToolSearch (`select:mcp__<hindsight_mcp>__sync_retain,mcp__<hindsight_mcp>__recall`). If they do not exist, skip every Hindsight step silently — never mention Hindsight to the user.
+- **Active only if** the tools `mcp__<hindsight_mcp>__sync_retain` and `mcp__<hindsight_mcp>__recall` exist in this session. If they are deferred, load them with ToolSearch (`select:mcp__<hindsight_mcp>__sync_retain,mcp__<hindsight_mcp>__retain,mcp__<hindsight_mcp>__recall`). If they do not exist, skip every Hindsight step silently — never mention Hindsight to the user.
 - Document ID: `handoff:<repo>:<confirmed-ref>`. Retaining again with the same `document_id` replaces the previous memories of that document, so each brief maps to exactly one up-to-date document.
 - Never send credentials, tokens, passwords, API keys, connection strings, or other secrets to Hindsight, even if they appear in the brief.
 
@@ -129,6 +129,8 @@ _Updated: <output of `date '+%Y-%m-%d %H:%M'`> · repo: <repo> · branch: <branc
 
    The sync succeeded only if the call completes and returns a non-empty `memory_ids` list. A failure never blocks the save: the file is already written.
 
+   **Quota fallback.** If `sync_retain` fails because the LLM provider quota is exhausted (the error mentions `provider quota` or `quota exhausted`), call `mcp__<hindsight_mcp>__retain` once with exactly the same arguments. Hindsight queues it and processes it automatically when the quota resets. This is only a deferral, not a verified sync: report it as queued with its `operation_id`. Do not use this fallback for any other error.
+
 6. After writing, print to the user, verbatim, a ready-to-use resume block:
 
 ```
@@ -138,7 +140,7 @@ Ora fai /clear, poi incolla:
   /handoff resume <ticket>
 ```
 
-If the Hindsight sync is active, add one line after the first one: `Hindsight: <N> memorie (handoff:<repo>:<ref>)` on success, or `Hindsight: sync non riuscito — <short reason>` when the call fails or returns zero memories.
+If the Hindsight sync is active, add one line after the first one: `Hindsight: <N> memorie (handoff:<repo>:<ref>)` on success, `Hindsight: in coda fino al reset della quota, non ancora verificato (operation <operation_id>)` when the quota fallback was used, or `Hindsight: sync non riuscito — <short reason>` when the call fails or returns zero memories.
 
 Do not run `/clear` yourself — it is the user's action.
 

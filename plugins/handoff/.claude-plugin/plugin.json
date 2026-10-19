@@ -2,7 +2,7 @@
   "name": "handoff",
   "displayName": "Handoff",
   "description": "Cold-start resume briefs (/handoff) + a UserPromptSubmit reminder that suggests saving a brief before /clear when the live context grows large. Optionally syncs briefs with a Hindsight MCP memory server.",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": {
     "name": "Luca Mattivi",
     "email": "luca@mattivi.io"
